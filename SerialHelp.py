@@ -24,7 +24,7 @@ class SerialHelper(object):
         self.bytesize = ByteSize
         self.parity = Parity
         self.stopbits = Stopbits
-        self.thresholdValue = 42
+        self.thresholdValue = 16
         self.receive_data = ""
 
     def start(self):
@@ -96,6 +96,7 @@ if __name__ == '__main__':
                 number = ser.l_serial.inWaiting()
                 if number:
                     ser.receive_data += ser.l_serial.read(number)
+                    print ser.receive_data
                     if ser.thresholdValue < len(ser.receive_data):
                         ser.receive_data = ""
                     else:                        
