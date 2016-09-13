@@ -11,6 +11,8 @@
 	self.num.set(singnalData[10:12])   
 	self.RSSI.set(int(singnalData[12:14],16))
 	self.times.set(signalData[14:16])
+
+    power=round(float(int(powerData[0:4],16))/147.0,2)
 	``` 
 
 #更新日志
@@ -19,4 +21,9 @@
 
 ## v0.2 20160817
 * 王辰梦简化字段  
-* 增加测试按钮  
+* 增加测试按钮
+
+##v0.28 新的分支 20160913
+* 增加发电量测试
+* 增加sqlite3数据存储
+* 多页面代码重构  
