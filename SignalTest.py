@@ -13,8 +13,7 @@ class SignalTest(Frame):
 
     def __init__(self, parent, root):
         Frame.__init__(self, parent)
-        label = Label(self, text="信号测试")
-        label.grid(pady=10, padx=10)
+
         self.createWidgets()
 
         # 串口
@@ -38,16 +37,18 @@ class SignalTest(Frame):
         self.portNameList.append("COMx")
 
         # 信号串口
+        Label(self, text=u'选择信号串口：').grid(row=1, column=3, sticky=W)
         self.signalPort = StringVar(self)
         self.signalPort.set(self.portNameList[1])
         SignalPortName = OptionMenu(self, self.signalPort, *self.portNameList)
-        SignalPortName.grid(row=0, column=0, columnspan=2, sticky=W)
+        SignalPortName.grid(row=2, column=3, columnspan=1, sticky=E)
 
         # 电量串口
+        Label(self, text=u'选择发电量串口：').grid(row=4, column=3, sticky=W)
         self.powerPort = StringVar(self)
         self.powerPort.set(self.portNameList[0])
         powerPortName = OptionMenu(self, self.powerPort, *self.portNameList)
-        powerPortName.grid(row=0, column=2, columnspan=1, sticky=E)
+        powerPortName.grid(row=5, column=3, columnspan=1, sticky=E)
 
 
         # UI界面
@@ -95,7 +96,7 @@ class SignalTest(Frame):
 
         self.signalButton = Button(
             self, text="开始测试", background="grey", command=self.changeSignalPort)
-        self.signalButton.grid(row=7, column=0, columnspan=5, sticky=W+E)
+        self.signalButton.grid(row=0, column=0, columnspan=5, sticky=W+E)
 
     # 获取串口列表，并返回list
     def getPortList(self):
@@ -109,7 +110,7 @@ class SignalTest(Frame):
         while self.signalSerial.alive or self.powerSerial.alive:
             try:
                 if self.signalSerial.alive:
-                    time.sleep(0.1)
+                    time.sleep(0.15)
                     signalnumber = self.signalSerial.l_serial.inWaiting()
                     if signalnumber:
                         self.signalSerial.receive_data += self.signalSerial.l_serial.read(signalnumber)
@@ -132,8 +133,10 @@ class SignalTest(Frame):
                     if 4 != len(self.powerSerial.receive_data):
                         self.powerSerial.receive_data=""
                     if self.signalSerial.receive_data !="" or self.powerSerial.receive_data !="" :
-                        receiveRSSI=int(
-                            self.signalSerial.receive_data[12:14], 16)
+                        if self.signalSerial.receive_data=="":
+                            receiveRSSI=0
+                        else:
+                            receiveRSSI=int(self.signalSerial.receive_data[12:14], 16)
                         setRSSI=int(str(self.signalArea.get()))
                         if receiveRSSI > setRSSI:
                             self.signalSerial.receive_data=""
@@ -153,8 +156,7 @@ class SignalTest(Frame):
             signalData="0000000000000000"
         if powerData=="":
             powerData="0000"
-        print powerData
-        print signalData
+
         ID=signalData[0:8]
         sType=signalData[8:10]
         num=signalData[10:12]
@@ -174,7 +176,6 @@ class SignalTest(Frame):
         value={'ID': ID, 'type': sType, 'num': num,
                  'signalTimes': times, 'testTime': now}
         self.sqlite.insert(self.table, value)
-        print self.sqlite.selectAll(self.table)
 
     def blink(self):
         self.signalButton['bg']='green'
