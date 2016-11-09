@@ -24,7 +24,7 @@ class SerialHelper(object):
         self.bytesize = ByteSize
         self.parity = Parity
         self.stopbits = Stopbits
-        self.thresholdValue = 16
+        self.thresholdValue = 18
         self.receive_data = ""
 
     def start(self):

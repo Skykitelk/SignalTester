@@ -7,7 +7,7 @@ class testerUI(object):
     """tester UI With Tkinter"""
     def __init__(self, root):
         frame = Frame(root)
-        root.geometry('400x300')
+        root.geometry('450x280')
         root.title("领普科技信号测试仪V0.1")
 
         #修改默认字体大小
@@ -20,11 +20,16 @@ class testerUI(object):
         self.currentPort=StringVar(root)
         self.currentPort.set(self.portNameList[0])
         self.portNames = OptionMenu(root,self.currentPort,*self.portNameList)
-        self.portNames.grid(row=0,columnspan=3,sticky=W)
+        self.portNames.grid(row=0,columnspan=1,sticky=W)
+
+        #状态标识
+        self.signalButton = Button(root,text=" ",bg="grey")
+        self.signalButton.grid(row=0,column=2,columnspan=1,sticky=E+W)
 
         #开始测试按钮
         self.startButton = Button(root,text="开始测试")
-        self.startButton.grid(row=0,column=2,columnspan=2,sticky=E+W)
+        self.startButton.grid(row=0,column=1,columnspan=1,sticky=E+W)
+
         #UI界面
         Label(root,text=u'ID: ').grid(row=1,column=0,sticky=E)
         self.ID = StringVar()
@@ -50,12 +55,11 @@ class testerUI(object):
         self.times = StringVar()
         self.timesEntry=Entry(root,textvariable=self.times).grid(row=5,column=1,columnspan=2,sticky=W+E)
 
-        #状态标识
-        self.signalButton = Button(root,text=" ",bg="grey")
-        self.signalButton.grid(row=6,column=0,columnspan=5,sticky=W+E)
+        
 
         #串口
         self.signalSerial = SerialHelper(self.currentPort.get())
+        self.signalSerial.thresholdValue = 16
         
 
     #获取串口列表，并返回list
@@ -70,15 +74,15 @@ class testerUI(object):
     def getSingnalData(self):
        while self.signalSerial.alive:
             try:
-                time.sleep(0.01)
                 number = self.signalSerial.l_serial.inWaiting()
-                if number:
+                if number==8:
                     self.signalSerial.receive_data += self.signalSerial.l_serial.read(number)
                     self.signalSerial.receive_data = str(binascii.b2a_hex(self.signalSerial.receive_data))
                     print self.signalSerial.receive_data
-                    
-                    if self.signalSerial.thresholdValue < len(self.signalSerial.receive_data):
+                    if self.signalSerial.thresholdValue != len(self.signalSerial.receive_data):
+                        print "len"
                         self.signalSerial.receive_data = ""
+                        
                     else:
                         receiveRSSI = int(self.signalSerial.receive_data[12:14],16)
                         setRSSI = int(str(self.signalArea.get()))
@@ -100,7 +104,8 @@ class testerUI(object):
     def blink(self):
         self.signalButton['bg']='green'
         time.sleep(0.1)
-        self.signalButton['bg']='grey'
+        self.signalButton['bg']='grey'    
+
 
 if __name__ == '__main__':
     root=Tk()
@@ -117,6 +122,13 @@ if __name__ == '__main__':
         thread_read = threading.Thread(target=tester.getSingnalData)
         thread_read.setDaemon(False)
         thread_read.start()
+
+        #[x]关闭窗口
+    def closeWindow():
+        tester.signalSerial.stop()
+        root.destroy()
+
+    root.protocol('WM_DELETE_WINDOW', closeWindow) # root is your root window
     tester.startButton.bind('<Button>',changeSignalPort)
     tester.signalSerial.start()
     root.mainloop()
