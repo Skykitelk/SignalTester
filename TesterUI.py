@@ -3,64 +3,109 @@ from Tkinter import *
 from SerialHelp import *
 import serial.tools.list_ports 
 import tkFont
-class testerUI(object):
+from config import *
+class testerUI(Frame):
 	"""tester UI With Tkinter"""
-	def __init__(self, root):
-		frame = Frame(root)
-		root.geometry('450x280')
-		root.title("领普科技信号测试仪V0.1")
-
-		#修改默认字体大小
-		default_font = tkFont.nametofont("TkDefaultFont")
-		default_font.configure(size=20)
-		root.option_add("*Font", default_font)
-		# grid 6*5布局
+	def __init__(self, parent,root):
+		Frame.__init__(self, parent)
+		
 		#串口读取选择界面
 		self.portNameList = self.getPortList()
-		self.currentPort=StringVar(root)
+		self.currentPort=StringVar(self)
 		self.currentPort.set(self.portNameList[0])
-		self.portNames = OptionMenu(root,self.currentPort,*self.portNameList)
-		self.portNames.grid(row=0,columnspan=1,sticky=W)
-
-		#状态标识
-		self.signalButton = Button(root,text=" ",bg="grey")
-		self.signalButton.grid(row=0,column=2,columnspan=1,sticky=E+W)
-
-		#开始测试按钮
-		self.startButton = Button(root,text="开始测试")
-		self.startButton.grid(row=0,column=1,columnspan=1,sticky=E+W)
-
-		#UI界面
-		Label(root,text=u'ID: ').grid(row=1,column=0,sticky=E)
-		self.ID = StringVar()
-		self.IDEntry=Entry(root,textvariable=self.ID).grid(row=1,column=1,columnspan=2,sticky=W+E)
-
-		Label(root,text=u'Type: ').grid(row=2,column=0,sticky=E)
-		self.type = StringVar()
-		self.typeEntry=Entry(root,textvariable=self.type).grid(row=2,column=1,columnspan=2,sticky=W+E)
-
-		Label(root,text=u'Num: ').grid(row=3,column=0,sticky=E)
-		self.num = StringVar()
-		self.numEntry=Entry(root,textvariable=self.num).grid(row=3,column=1,columnspan=2,sticky=W+E)
-
-		Label(root,text=u'RSSI: ').grid(row=4,column=0,sticky=E)
-		self.RSSI = StringVar()
-		self.RSSIEntry=Entry(root,textvariable=self.RSSI,width=10).grid(row=4,column=1,sticky=W+E)
-
-		self.signalArea = StringVar()
-		self.signalArea.set("50")
-		self.signalAreaEntry = Entry(root, textvariable = self.signalArea,width=10).grid(row=4,column=2,sticky=W+E)
-
-		Label(root,text=u'次数: ').grid(row=5,column=0,sticky=E)
-		self.times = StringVar()
-		self.timesEntry=Entry(root,textvariable=self.times).grid(row=5,column=1,columnspan=2,sticky=W+E)
-
 		
-
 		#串口
 		self.signalSerial = SerialHelper(self.currentPort.get())
 		self.signalSerial.thresholdValue = 16
+		self.createWidgets()
+		 
+	def createWidgets(self):
+		rowHeight = 2
+		rowWidth = 10
 		
+		row=0
+		#状态标识
+		self.signalButton = Button(self,text=" ",bg="grey",height=rowHeight)
+		self.signalButton.grid(row=row,column=0,sticky=W+E)
+		
+		def changeSignalPort(event):
+			if self.signalSerial.alive:
+				self.signalSerial.stop()
+			
+			self.signalSerial.port = self.currentPort.get()
+			self.signalSerial.start()
+			thread_read = threading.Thread(target=self.getSingnalData)
+			thread_read.setDaemon(False)
+			thread_read.start()
+		
+		self.portNames = OptionMenu(self,self.currentPort,*self.portNameList,command=changeSignalPort)
+		self.portNames.grid(row=row,column=1,sticky=W+E+N+S)
+
+		#模块类型
+		moduleName = PM.keys()
+		self.module=StringVar()
+		self.module.set(moduleName[0])
+		def changeModel(event):
+			self.moduleParam = eval(PM[self.module.get()])
+			self.rightType = self.moduleParam['TYPE']
+			self.rightNum = self.moduleParam['NUM']
+		
+		modules = OptionMenu(self,self.module,*moduleName,command=changeModel)
+		modules.grid(row=row,column=2,sticky=W+E+N+S)
+		
+		
+		#第二行
+		row += 1
+		Label(self,text=u'ID: ',height=rowHeight).grid(row=row,column=0,sticky=E)
+		self.ID = StringVar()
+		self.IDEntry=Entry(self,textvariable=self.ID,state=["readonly"])
+		self.IDEntry.grid(row=row,column=1,sticky=W+E+N+S)
+		
+		self.quantity = StringVar()
+		Label(self,textvariable=self.quantity).grid(row=row,column=2,sticky=W+E+N+S)
+
+		#第三行
+		row += 1
+		Label(self,text=u'Type: ',height=rowHeight).grid(row=row,column=0,sticky=E)
+		self.type = StringVar()
+		self.typeEntry=Entry(self,textvariable=self.type,state=["readonly"])
+		self.typeEntry.grid(row=row,column=1,sticky=W+E+N+S)
+		
+		self.typeDescription = StringVar()
+		Label(self,textvariable=self.typeDescription).grid(row=row,column=2,sticky=W+E+N+S)
+
+		#第四行
+		row += 1
+		Label(self,text=u'Num: ',height=rowHeight).grid(row=row,column=0,sticky=E)
+		self.num = StringVar()
+		self.numEntry=Entry(self,textvariable=self.num,state=["readonly"])
+		self.numEntry.grid(row=row,column=1,sticky=W+E+N+S)
+		
+		self.numDescription = StringVar()
+		Label(self,textvariable=self.numDescription).grid(row=row,column=2,sticky=W+E+N+S)
+		#第五行
+		row += 1
+		Label(self,text=u'RSSI: ',height=rowHeight).grid(row=row,column=0)
+		self.RSSI = StringVar()
+		self.RSSIEntry=Entry(self ,textvariable=self.RSSI,width=10,state=["readonly"])
+		self.RSSIEntry.grid(row= row,column=1,sticky=W+E+N+S)
+
+		self.signalArea = StringVar()
+		self.signalArea.set("35")
+		self.signalAreaEntry = Entry(self, textvariable = self.signalArea,width=10).grid(row=row,column=2,sticky=W+E+N+S)
+
+		#第六行
+		row += 1
+		Label(self,text=u'次数: ',height=rowHeight).grid(row=row,column=0,sticky=E)
+		self.times = StringVar()
+		self.timesEntry=Entry(self,textvariable=self.times,state=["readonly"])
+		self.timesEntry.grid(row=row,column=1,sticky=W+E+N+S)
+		
+		self.timesDescription = StringVar()
+		Label(self,textvariable=self.timesDescription).grid(row=row,column=2,sticky=W+E+N+S)
+		
+		changeModel('<Button>')
+		changeSignalPort('<Button>')
 
 	#获取串口列表，并返回list
 	def getPortList(self):
@@ -91,17 +136,51 @@ class testerUI(object):
 						self.signalSerial.receive_data = ""
 
 			except Exception as e:
-				logging.error(e) 
+				logging.error(e)
+				while(1):
+					if self.signalSerial.alive:
+						self.signalSerial.stop()
+				
+					self.signalSerial.port = self.currentPort.get()
+					self.signalSerial.start()
+					thread_read = threading.Thread(target=self.getSingnalData)
+					thread_read.setDaemon(False)
+					thread_read.start()
+
 
 	#更新显示数据
 	def updateUI(self, singnalData):
+		self.IDEntry['fg']='blue'
 		self.ID.set(singnalData[0:8])
-		self.type.set(singnalData[8:10])
-		self.num.set(singnalData[10:12])
+		
+		testType = singnalData[8:10]
+		self.type.set(testType)
+		if testType == self.rightType:
+			self.typeEntry['fg']='blue'
+		else:
+			self.typeEntry['fg']='red'
+		
+		testNum = singnalData[10:12]
+		self.num.set(testNum)
+		
+		if testNum in self.rightNum.keys():
+			self.numEntry['fg']='blue'
+			self.numDescription.set(self.rightNum[testNum])
+		else:
+			self.numEntry['fg']='red'	
+			self.numDescription.set("")
+		 
 		self.RSSI.set(int(singnalData[12:14],16))
+		self.RSSIEntry['fg']='blue'
+		
 		self.times.set(singnalData[14:16])
-		self.blink()
+		if int(self.times.get()) >= 2:
+			self.timesEntry['fg']='blue'
+		else:
+			self.timesEntry['fg']='red'
 
+		self.blink()
+		
 	def blink(self):
 		self.signalButton['bg']='green'
 		time.sleep(0.1)
@@ -110,19 +189,17 @@ class testerUI(object):
 
 if __name__ == '__main__':
 	root=Tk()
-	tester = testerUI(root)
-	#tester.signalSerial.start()
-	thread_read = threading.Thread(target=tester.getSingnalData)
-	thread_read.setDaemon(False)
-	thread_read.start()
+	root.geometry('800x480')  
+	root.title("领普科技信号测试仪V0.1")
 
-	def changeSignalPort(event):
-		tester.signalSerial.stop()
-		tester.signalSerial.port = tester.currentPort.get()
-		tester.signalSerial.start()
-		thread_read = threading.Thread(target=tester.getSingnalData)
-		thread_read.setDaemon(False)
-		thread_read.start()
+	#修改默认字体大小
+
+	font=('Verdane',20,'bold')
+	root.option_add("*Font", font)
+	
+	container = Frame(root)
+	tester = testerUI(root,container)
+	tester.grid(row=0, column=0, sticky="nsew")
 
 		#[x]关闭窗口
 	def closeWindow():
@@ -130,6 +207,4 @@ if __name__ == '__main__':
 		root.destroy()
 
 	root.protocol('WM_DELETE_WINDOW', closeWindow) # root is your root window
-	tester.startButton.bind('<Button>',changeSignalPort)
-	tester.signalSerial.start()
 	root.mainloop()
