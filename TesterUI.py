@@ -18,7 +18,11 @@ class testerUI(Frame):
 		self.signalSerial = SerialHelper(self.currentPort.get())
 		self.signalSerial.thresholdValue = 16
 		self.createWidgets()
-		 
+		
+		self.IDS={}
+		ctime = time.time()
+		self.IDS["00000000"]=ctime
+		self.repeat =0
 	def createWidgets(self):
 		rowHeight = 2
 		rowWidth = 10
@@ -62,7 +66,7 @@ class testerUI(Frame):
 		self.IDEntry.grid(row=row,column=1,sticky=W+E+N+S)
 		
 		self.quantity = StringVar()
-		Label(self,textvariable=self.quantity).grid(row=row,column=2,sticky=W+E+N+S)
+		Label(self,textvariable=self.quantity,fg="red").grid(row=row,column=2,sticky=W+E+N+S)
 
 		#第三行
 		row += 1
@@ -124,7 +128,7 @@ class testerUI(Frame):
 					self.signalSerial.receive_data += self.signalSerial.l_serial.read(number)
 					self.signalSerial.l_serial.flushInput()
 					self.signalSerial.receive_data = str(binascii.b2a_hex(self.signalSerial.receive_data))
-					print self.signalSerial.receive_data
+					#print self.signalSerial.receive_data
 					if self.signalSerial.thresholdValue != len(self.signalSerial.receive_data):
 						self.signalSerial.receive_data = ""
 						
@@ -137,21 +141,32 @@ class testerUI(Frame):
 
 			except Exception as e:
 				logging.error(e)
+				#串口断线后重启
 				while(1):
-					if self.signalSerial.alive:
-						self.signalSerial.stop()
-				
-					self.signalSerial.port = self.currentPort.get()
+					time.sleep(0.5)
+					self.signalSerial.stop()
 					self.signalSerial.start()
-					thread_read = threading.Thread(target=self.getSingnalData)
-					thread_read.setDaemon(False)
-					thread_read.start()
+					port = self.currentPort.get()
+					print port
+					if self.signalSerial.alive:
+						break
 
 
 	#更新显示数据
 	def updateUI(self, singnalData):
+		currentID = singnalData[0:8]
+		currentTime = time.time()
 		self.IDEntry['fg']='blue'
-		self.ID.set(singnalData[0:8])
+		self.ID.set(currentID)
+		
+		#重复检测
+		if currentID in self.IDS.keys():
+			if currentTime-self.IDS[currentID]>5:
+				self.repeat += 1
+				self.quantity .set("重复"+str(self.repeat))
+				print self.repeat,currentID,currentTime
+		else:
+			self.IDS[currentID]=currentTime
 		
 		testType = singnalData[8:10]
 		self.type.set(testType)
@@ -194,7 +209,7 @@ if __name__ == '__main__':
 
 	#修改默认字体大小
 
-	font=('Verdane',20,'bold')
+	font=('Verdane',17,'bold')
 	root.option_add("*Font", font)
 	
 	container = Frame(root)
